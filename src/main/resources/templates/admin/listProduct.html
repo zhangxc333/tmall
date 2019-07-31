@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head th:include="common/admin/adminHeader::html('产品管理')">
+</head>
+
+<body>
+<!-- 导航栏 -->
+<div th:replace="common/admin/adminNavigator::html"></div>
+
+
+<script>
+
+    $(function(){
+        var cid = getUrlParms("cid");
+        var data4Vue = {
+            uri:"product",
+            beans:[], //用于存放返回的json数据
+            product:{     //用于存放属性的信息
+                id:0,
+                cid: cid,
+                name:"",
+                subtitle:'',
+                originalprice:0.0,
+                promoteprice:0.0,
+                stock:0,
+                createdate:null
+            },
+            category:{ //用于存放分类信息，指明这些属性时哪一个分类下
+                id: cid,
+                name:''
+            }
+
+        };
+
+        //ViewModel
+        var vue = new Vue({
+            el: '#container-fluid',
+            data: data4Vue,
+            mounted:function(){ //mounted　表示这个 Vue 对象加载成功了
+                this.list(0);
+            },
+            methods: {
+                list:function(pn){
+                    ///listPage?cid=80&pn=1
+                    var url =  this.uri + "/listPage?cid=" + cid + "&pn=" + pn;
+                    axios.get(url).then(function(response) {
+                        vue.beans = response.data.data;
+                        console.log(vue.beans);
+                    });
+
+                    var url2 = "category/" + cid;
+                    axios.get(url2).then(function(response) {
+                        vue.category = response.data.data;
+                    });
+                },
+                jump:function (page) {
+                    jump(page,vue);
+                },
+                jumpByNumber:function (pn) {
+                    jumpByNumber(pn,vue);
+                },
+                add:function () {
+                    //判断是否存在属性信息
+                    if (!checkEmpty(this.product.name,"属性名称"))
+                        return;
+                    var url = this.uri + "/create";
+                    axios.post(url, this.product).then(function(response){
+                        //结束后查询最后一页
+                        vue.list(999);
+                        //清空文件上传相关数据
+                        vue.product = { id: 0, cid: cid, name: ''};
+                    });
+                },
+                deleteProduct:function (id) {
+                    if (!checkDeleteLink()){
+                        return;
+                    }
+                    var url = this.uri + "/" + id;
+                    axios.delete(url).then(function (value) {
+                        if(0!=value.data.length){
+                            alert("成功删除"+ id + "产品");
+                            //删除成功后，查询最后一页
+                            vue.list(999);
+                        }
+                        else{
+                            vue.list(0);
+                        }
+                    });
+                }
+
+            }
+        });
+    });
+
+</script>
+
+<!-- 页面可变内容 -->
+<div class="container-fluid" id="container-fluid">
+
+    <ol class="breadcrumb">
+        <li><a href="listCategory">所有分类</a></li>
+        <li><a :href="'listProduct?cid=' + product.cid">{{category.name}}</a></li>
+        <li class="active">编辑产品</li>
+    </ol>
+
+    <!--    表格信息-->
+    <div class="row">
+        <main role="main" class="col-md-10 ml-sm-auto col-lg-10 pt-3 px-4 col-lg-offset-1">
+            <!--  表头-->
+            <div class="row">
+                <div class="col-xs-6 col-sm-10">
+                    <h4>产品管理</h4>
+                </div>
+            </div>
+            <!--  表格内容-->
+            <div class="table-responsive">
+                <table class="table table-striped table-sm">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>图片</th>
+                        <th>产品名称</th>
+                        <th>产品小标题</th>
+                        <th>原价格</th>
+                        <th>优惠价格</th>
+                        <th>库存数量</th>
+                        <th>图片管理</th>
+                        <th>设置属性</th>
+                        <th>编辑</th>
+                        <th>删除</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr v-for="list in beans.list">
+
+                        <td>{{list.id}}</td>
+                        <td>
+                            <img v-if="null != list.firstProductimageId" width="40px" :src="'img/productSingle/'+list.firstProductimageId+'.jpg'">
+                        </td>
+                        <td>{{list.name}}</td>
+                        <td>{{list.subtitle}}</td>
+                        <td>{{list.originalprice}}</td>
+                        <td>{{list.promoteprice}}</td>
+                        <td>{{list.stock}}</td>
+                        <td>
+                            <a :href="'listProductIamge?pid=' + list.id "><span class="glyphicon glyphicon-picture"></span></a>
+                        </td>
+                        <td>
+                            <a :href="'editPropertyValue?pid=' + list.id + '&cid=' + list.cid"><span class="glyphicon glyphicon-th-list"></span></a>
+                        </td>
+                        <td>
+                            <a :href="'editProduct?id=' + list.id"><span class="glyphicon glyphicon-edit"></span></a>
+                        </td>
+                        <td>
+                            <a href="#nowhere"  @click="deleteProduct(list.id)"><span class="glyphicon glyphicon-trash"></span></a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </main>
+    </div>
+
+    <!--分页-->
+    <div class="row col-md-offset-5">
+        <nav aria-label="Page navigation">
+            <ul class="pagination">
+
+                <li :class="{disabled: beans.isFirstPage}">
+                    <a href="#" @click="jump('first')"><span>首页</span></a>
+                </li>
+                <li :class="{disabled: !beans.hasPreviousPage}">
+                    <a href="#" aria-label="Previous" @click="jump('pre')">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+
+                <li v-for="navigatepageNum in beans.navigatepageNums"><a href="#" @click="jumpByNumber(navigatepageNum)">{{navigatepageNum}}</a></li>
+
+                <li :class="{disabled: !beans.hasNextPage}">
+                    <a href="#" aria-label="Next" @click="jump('next')">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                <li :class="{disabled: beans.isLastPage}">
+                    <a href="#" @click="jump('last')"><span>尾页</span></a>
+                </li>
+
+            </ul>
+        </nav>
+    </div>
+
+    <!-- 新增分类框 -->
+    <div class="row">
+        <div class="panel panel-warning addDiv">
+            <div class="panel-heading">新增产品</div>
+            <div class="panel-body">
+                <table class="addTable">
+                    <tr>
+                        <td>产品名称</td>
+                        <td><input  @keyup.enter="add" v-model.trim="product.name" type="text" class="form-control"></td>
+                    </tr>
+                    <tr>
+                        <td>产品小标题</td>
+                        <td><input  @keyup.enter="add" v-model.trim="product.subtitle" type="text" class="form-control"></td>
+                    </tr>
+                    <tr>
+                        <td>原价格</td>
+                        <td><input  @keyup.enter="add" v-model.trim="product.originalprice" type="text" class="form-control"></td>
+                    </tr>
+                    <tr>
+                        <td>优惠价格</td>
+                        <td><input  @keyup.enter="add" v-model.trim="product.promoteprice" type="text" class="form-control"></td>
+                    </tr>
+                    <tr>
+                        <td>库存</td>
+                        <td><input  @keyup.enter="add" v-model.trim="product.stock" type="text" class="form-control"></td>
+                    </tr>
+                    <tr class="submitTR">
+                        <td colspan="2" align="center">
+                            <a href="#nowhere"  @click="add" class="btn btn-success">提交</a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+
+</html>

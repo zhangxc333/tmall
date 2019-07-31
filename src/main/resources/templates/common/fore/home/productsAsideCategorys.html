@@ -1,0 +1,13 @@
+<div th:fragment="html">
+	<div class="productsAsideCategorys" v-for="c in categories" :cid="c.id">
+		<div class="row show1" v-for="p in c.products">
+
+			<a :href="'product?pid='+p.id" v-if="p.subtitle!=null">
+				{{p.subtitle | subTitleFilter}}
+			</a>
+
+			<div class="seperator"></div>
+		</div>
+	</div>
+</div>
+	

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head th:include="common/admin/adminHeader::html('订单管理')">
+</head>
+
+<body>
+<!-- 导航栏 -->
+<div th:replace="common/admin/adminNavigator::html"></div>
+
+
+<script>
+
+    $(function(){
+        var data4Vue = {
+            beans:[],
+            orderItemBeans:[],
+            user:{},
+            product:{}
+        };
+
+        //ViewModel
+        var vue = new Vue({
+            el: '#container-fluid',
+            data: data4Vue,
+            mounted:function(){ //mounted　表示这个 Vue 对象加载成功了
+                this.list(0);
+            },
+            methods: {
+                list:function(pn){
+                    var url = "order/listPage?pn=" + pn;
+                    axios.get(url).then(function(response) {
+                        vue.beans = response.data.data;
+                    });
+
+                },
+                showOrderItems:function(order){
+                    var id = order.id;
+                    $("#orderItemsTR"+id).show();
+
+                },
+                deliveryOrder:function(order,e){
+                    var url = "order/create";
+                    axios.put(url,order).then(function (value) {
+                        $(e.target).hide();
+                        vue.list(0);
+                    });
+                },
+                jump:function (page) {
+                    jump(page,vue);
+                },
+                jumpByNumber:function (pn) {
+                    jumpByNumber(pn,vue);
+                }
+
+            }
+        });
+    });
+
+</script>
+
+<!-- 页面可变内容 -->
+<div class="container-fluid" id="container-fluid">
+
+    <ol class="breadcrumb">
+        <li class="active">订单管理</li>
+    </ol>
+
+    <!--    表格信息-->
+    <div class="row">
+        <main role="main" class="col-md-10 ml-sm-auto col-lg-10 pt-3 px-4 col-lg-offset-1">
+            <!--  表格内容-->
+            <div class="table-responsive">
+                <table class="table table-striped table-sm">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>状态</th>
+                        <th>金额</th>
+                        <th width="100px">商品数量</th>
+                        <th width="100px">买家名称</th>
+                        <th>创建时间</th>
+                        <th>支付时间</th>
+                        <th>发货时间</th>
+                        <th>确认收货时间</th>
+                        <th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <template v-for="order in beans.list">
+                        <tr>
+                            <td>{{order.id}}</td>
+                            <td>{{order.statusChinese}}</td>
+                            <td>{{order.total}}</td>
+                            <td>{{order.totalNumber}}</td>
+                            <td>{{order.user.name}}</td>
+                            <td>{{order.statusChinese}}</td>
+                            <td>{{order.createdate}}</td>
+                            <td>{{order.paydate}}</td>
+                            <td>{{order.deliverydate}}</td>
+                            <td>{{order.confirmdate}}</td>
+                            <td>
+                                <button @click="showOrderItems(order)" class=" btn btn-primary btn-xs">查看详情</button>
+                                <button v-if="order.status=='waitDelivery'" @click="deliveryOrder(order, $event)" class=" btn btn-success btn-xs">发货</button>
+                            </td>
+                        </tr>
+
+                        <tr class="orderPageOrderItemTR"  :id="'orderItemsTR'+order.id">
+                            <td colspan="10" align="center">
+                                <div  class="orderPageOrderItem">
+                                    <table width="800px" align="center" class="orderPageOrderItemTable">
+                                        <tr v-for="orderItem in order.orderitems">
+                                            <td align="left">
+                                                <img width="40px" height="40px" :src="'img/productSingle/'+orderItem.product.firstProductimageId+'.jpg'">
+                                            </td>
+
+                                            <td>
+                                                <a :href="'product?pid='+orderItem.product.id">
+                                                    <span>{{orderItem.product.name}}</span>
+                                                </a>
+                                            </td>
+                                            <td align="right">
+
+                                                <span class="text-muted">{{orderItem.number}}个</span>
+                                            </td>
+                                            <td align="right">
+
+                                                <span class="text-muted">单价：￥{{orderItem.product.promoteprice}}</span>
+                                            </td>
+
+                                        </tr>
+                                    </table>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+                    </tbody>
+                </table>
+            </div>
+
+        </main>
+    </div>
+
+    <!--分页-->
+    <div class="row col-md-offset-5">
+        <nav aria-label="Page navigation">
+            <ul class="pagination">
+
+                <li :class="{disabled: beans.isFirstPage}">
+                    <a href="#" @click="jump('first')"><span>首页</span></a>
+                </li>
+                <li :class="{disabled: !beans.hasPreviousPage}">
+                    <a href="#" aria-label="Previous" @click="jump('pre')">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+
+                <li v-for="navigatepageNum in beans.navigatepageNums"><a href="#" @click="jumpByNumber(navigatepageNum)">{{navigatepageNum}}</a></li>
+
+                <li :class="{disabled: !beans.hasNextPage}">
+                    <a href="#" aria-label="Next" @click="jump('next')">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                <li :class="{disabled: beans.isLastPage}">
+                    <a href="#" @click="jump('last')"><span>尾页</span></a>
+                </li>
+
+            </ul>
+        </nav>
+    </div>
+
+</div>
+
+</body>
+
+</html>

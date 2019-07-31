@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:include="common/admin/adminHeader::html('产品属性值')" ></head>
+<body>
+<div th:replace="common/admin/adminNavigator::html" ></div>
+<script>
+    $(function(){
+        var pid  = getUrlParms("pid");
+        var cid  = getUrlParms("cid");
+        var data4Vue = {
+            uri: 'propertyvalue',
+            propertyvalues:[],
+            propertys:[],
+            propertyvalue:{ //修改的时候用到属性上传
+                id:0,
+                value:"",
+                pid:pid,
+                tpid:0
+            },
+            product:{}
+        };
+
+        //ViewModel
+        var vue = new Vue({
+            el: '#workingArea',
+            data: data4Vue,
+            mounted:function(){ //mounted　表示这个 Vue 对象加载成功了
+                this.get();
+            },
+            methods: {
+                get:function(){
+
+                    // propertyvalue/listAll?pid=91
+                    var url_pv = this.uri+"/listAll?pid="+pid;
+                    axios.get(url_pv).then(function(response) {
+                        vue.propertyvalues = response.data.data;
+                    });
+                    // property/listAll?cid=80
+                    var url_p = "property/listAll?cid="+cid;
+                    axios.get(url_p).then(function(response) {
+                        vue.propertys = response.data.data;
+                    });
+                    //
+                    var url_product = "product/"+pid;
+                    axios.get(url_product).then(function(response) {
+                        vue.product = response.data.data;
+                    });
+
+
+                },
+                update:function (id,value, tpid) {
+                    vue.propertyvalue.id = id;
+                    vue.propertyvalue.value = value;
+                    vue.propertyvalue.tpid = tpid;
+                    var url = this.uri+"/"+ id;
+                    axios.put(url,vue.propertyvalue).then(function(response){
+                    });
+                }
+            }
+        });
+    });
+</script>
+
+<div id="workingArea">
+
+    <ol class="breadcrumb">
+        <li><a href="listCategory">所有分类</a></li>
+        <li><a :href="'listProduct?cid=' + product.cid">所有产品</a></li>
+        <li class="active"><b>{{product.name}}</b></li>
+        <li class="active">产品属性值</li>
+    </ol>
+
+    <div class="editPVDiv">
+        <div v-for="p in propertys" class="eachPV">
+            <span class="pvName" >{{p.name}}</span>
+            <span class="pvValue" v-for="pv in propertyvalues" v-if="pv.ptid==p.id">
+                <input class="pvValue" type="text" v-model="pv.value" @keyup.enter="update(pv.id, pv.value, pv.ptid)">
+            </span>
+        </div>
+        <div style="clear:both"></div>
+    </div>
+
+</div>
+
+<div th:replace="common/admin/adminFooter::html" ></div>
+</body>
+</html>
+
+
+
+
+
+
