@@ -24,7 +24,3 @@
 |   druid    | 1.1.17 |     数据源     |                         |
 | PageHelper | 1.2.10 |    分页插件    |                         |
 |  Swagger   |        | Swagger-UI接口 | 在线API文档             |
-|            |        |                |                         |
-|            |        |                |                         |
-|            |        |                |                         |
-
